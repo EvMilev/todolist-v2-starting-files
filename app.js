@@ -1,4 +1,3 @@
-//jshint esversion:6
 
 const express = require("express");
 const bodyParser = require("body-parser");
@@ -16,7 +15,15 @@ app.use(express.static("public"));
 const itemsSchema = new mongoose.Schema({
   name: String
 })
+const listSchema = new mongoose.Schema({
+  name: String,
+  items: [itemsSchema]
+})
 const Item = mongoose.model('Item', itemsSchema)
+const listItem = mongoose.model('List', listSchema )
+
+
+
 
 const item1 = new Item ({
   name: "Welcome to your todolist!"
@@ -25,7 +32,7 @@ const item2 = new Item ({
   name: "Hit the + button to add a new item."
 })
 const item3 = new Item ({
-  name: "-- hit this to delete item."
+  name: "<- hit this to delete item."
 })
 
 const defaultItems = [item1, item2, item3]
@@ -38,7 +45,7 @@ app.get("/", function(req, res) {
     .then(foundItems => {
       if (foundItems.length === 0){
         Item.insertMany(defaultItems).then(() => {
-          console.log("Item is successfull y inserted in todolistDB.")
+          console.log("Item is successfully inserted in todolistDB.")
           mongoose.connection.close()
         }).catch(err => {
           console.log(err)  
@@ -51,6 +58,15 @@ app.get("/", function(req, res) {
     .catch(err => {
       console.log(err);
     });
+});
+
+
+
+app.get("/:customListName", function(req, res) {
+  const customListName = req.params.field
+  
+
+
 });
 
 
@@ -74,9 +90,10 @@ app.post('/delete', function(req, res) {
   }); 
 })
 
-app.get("/work", function(req,res){
-  res.render("list", {listTitle: "Work List", newListItems: workItems});
-});
+// app.get("/:field", function(req,res){
+//   const newField = req.params.field
+//   res.render("list", { listTitle: newField, newListItems: foundItems });
+// });
 
 app.get("/about", function(req, res){
   res.render("about");
