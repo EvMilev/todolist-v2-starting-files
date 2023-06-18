@@ -9,8 +9,6 @@ app.set('view engine', 'ejs');
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(express.static("public"));
 
-// const items = ["Buy Food", "Cook Food", "Eat Food"];
-// const workItems = [];
 
 const itemsSchema = new mongoose.Schema({
   name: String
@@ -20,7 +18,7 @@ const listSchema = new mongoose.Schema({
   items: [itemsSchema]
 })
 const Item = mongoose.model('Item', itemsSchema)
-const listItem = mongoose.model('List', listSchema )
+const List = mongoose.model('List', listSchema )
 
 
 
@@ -63,22 +61,61 @@ app.get("/", function(req, res) {
 
 
 app.get("/:customListName", function(req, res) {
-  const customListName = req.params.field
+  const customListName = req.params.customListName
   
-
-
+  List.findOne({name: customListName}).then(foundList =>
+    { 
+      if(!foundList) {
+      const list = new List ({
+        name: customListName,
+        items: defaultItems
+        })
+      list.save();
+      res.redirect('/' + customListName)
+    }
+    else {
+      res.render('list', {listTitle: foundList.name, newListItems: foundList.items})
+      }
+    })
 });
 
 
 
 app.post("/", function(req, res){
   const itemName = req.body.newItem;
+  const listName = req.body.list;
   const item = new Item ({
     name: itemName
   });
-  item.save()
-  res.redirect('/');
+
+  if(listName === "Today"){
+    item.save()
+      .then(() => {
+        res.redirect('/');
+      })
+      .catch(err => console.log(err));
+  } else {
+    List.findOne({ name: listName })
+      .exec()
+      .then(foundList => {
+        if (!foundList) {
+          const list = new List({
+            name: listName,
+            items: defaultItems
+          });
+          list.save();
+          res.redirect('/' + listName);
+        } else {
+          foundList.items.push(item);
+          foundList.save();
+          res.redirect('/' + listName);
+        }
+      });
+  }
 });
+
+
+
 
 app.post('/delete', function(req, res) {
   const checkedBox = req.body.checkbox;
