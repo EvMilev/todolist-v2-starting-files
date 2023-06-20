@@ -3,7 +3,9 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
 const app = express();
-mongoose.connect('mongodb://127.0.0.1:27017/todolistDB');
+const _ = require("lodash")
+
+mongoose.connect('mongodb+srv://Evgenios:proba-679@cluster0.ju8ynpv.mongodb.net/?retryWrites=true&w=majority/todolistDB');
 app.set('view engine', 'ejs');
 
 app.use(bodyParser.urlencoded({extended: true}));
@@ -61,7 +63,7 @@ app.get("/", function(req, res) {
 
 
 app.get("/:customListName", function(req, res) {
-  const customListName = req.params.customListName
+  const customListName = _.capitalize(req.params.customListName);
   
   List.findOne({name: customListName}).then(foundList =>
     { 
@@ -71,7 +73,10 @@ app.get("/:customListName", function(req, res) {
         items: defaultItems
         })
       list.save();
-      res.redirect('/' + customListName)
+      
+      const randomNumber = Math.random(); // Генериране на случайно число
+      res.redirect('/' + listName + '?' + randomNumber);
+      // res.redirect('/' + customListName)
     }
     else {
       res.render('list', {listTitle: foundList.name, newListItems: foundList.items})
@@ -84,7 +89,7 @@ app.get("/:customListName", function(req, res) {
 app.post("/", function(req, res){
   const itemName = req.body.newItem;
   const listName = req.body.list;
-  const item = new Item ({
+  const item = new Item({
     name: itemName
   });
 
@@ -96,7 +101,6 @@ app.post("/", function(req, res){
       .catch(err => console.log(err));
   } else {
     List.findOne({ name: listName })
-      .exec()
       .then(foundList => {
         if (!foundList) {
           const list = new List({
@@ -110,27 +114,39 @@ app.post("/", function(req, res){
           foundList.save();
           res.redirect('/' + listName);
         }
-      });
+      })
+      .catch(err => console.log(err));
   }
 });
 
 
 
 
+
 app.post('/delete', function(req, res) {
   const checkedBox = req.body.checkbox;
-  Item.findByIdAndRemove(checkedBox).then(() => {
-    console.log("Item is successfully removed from todolistDB.")
-    res.redirect('/')
-  }).catch(err => {
-    console.log(err)  
-  }); 
+  const listName = req.body.listName
+
+  if(listName === "Today") {
+    Item.findByIdAndRemove(checkedBox).then(() => {
+      res.redirect('/' )
+    }).catch(err => {
+      console.log(err)
+      }); 
+    } else {
+      List.findOneAndUpdate({name: listName}, {$pull: {items: {_id: checkedBox}}}, {new: true} ).then(() => {
+          res.redirect('/' + listName)
+      }).catch(err => {
+        console.log(err);
+        res.redirect('/' + listName);
+      });
+    }
+
+  
+
 })
 
-// app.get("/:field", function(req,res){
-//   const newField = req.params.field
-//   res.render("list", { listTitle: newField, newListItems: foundItems });
-// });
+
 
 app.get("/about", function(req, res){
   res.render("about");
