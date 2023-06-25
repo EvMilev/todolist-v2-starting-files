@@ -1,0 +1,3 @@
+[build]
+  command = "node app.js"
+  functions = "build/serverless"
